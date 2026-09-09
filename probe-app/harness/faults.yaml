@@ -1,0 +1,77 @@
+# Curated ~10 flagd faults with an unambiguous single root-cause service,
+# used by run_eval.py for the self-grading harness. Variant names/values
+# copied verbatim from src/flagd/demo.flagd.json — keep in sync if that
+# file changes.
+#
+# adManualGc, imageSlowLoad, and productCatalogFailure are deliberately
+# excluded: adManualGc/imageSlowLoad produce weak/short latency blips that
+# are hard to separate from noise at a 30s bucket size, and
+# productCatalogFailure's targeting rule currently resolves "off" on both
+# branches in demo.flagd.json, so flipping defaultVariant alone doesn't
+# actually inject the fault (would also need the targeting rule edited).
+
+faults:
+  - flagd_flag: paymentFailure
+    inject_variant: "100%"
+    reset_variant: "off"
+    expected_root_cause_service: payment
+    expected_signal: trace_error_rate
+
+  - flagd_flag: paymentUnreachable
+    inject_variant: "on"
+    reset_variant: "off"
+    expected_root_cause_service: payment
+    expected_signal: trace_error_rate
+
+  - flagd_flag: cartFailure
+    inject_variant: "100%"
+    reset_variant: "off"
+    expected_root_cause_service: cart
+    expected_signal: trace_error_rate
+
+  - flagd_flag: adFailure
+    inject_variant: "on"
+    reset_variant: "off"
+    expected_root_cause_service: ad
+    expected_signal: trace_error_rate
+
+  - flagd_flag: adHighCpu
+    inject_variant: "on"
+    reset_variant: "off"
+    expected_root_cause_service: ad
+    expected_signal: trace_latency_p95
+
+  - flagd_flag: recommendationCacheFailure
+    inject_variant: "on"
+    reset_variant: "off"
+    expected_root_cause_service: recommendation
+    expected_signal: trace_latency_p95
+
+  - flagd_flag: emailMemoryLeak
+    inject_variant: "10000x"
+    reset_variant: "off"
+    expected_root_cause_service: email
+    expected_signal: trace_latency_p95
+
+  - flagd_flag: kafkaQueueProblems
+    inject_variant: "on"
+    reset_variant: "off"
+    expected_root_cause_service: kafka
+    expected_signal: log_error_burst
+
+  - flagd_flag: failedReadinessProbe
+    inject_variant: "on"
+    reset_variant: "off"
+    expected_root_cause_service: cart
+    expected_signal: trace_error_rate
+
+  - flagd_flag: intlShippingSlowdown
+    inject_variant: "10sec"
+    reset_variant: "off"
+    expected_root_cause_service: shipping
+    expected_signal: trace_latency_p95
+
+# Fixed, deliberately dumb baseline used for the head-to-head comparison —
+# "fires on symptoms for only 3 and never names the cause" per the PDF.
+threshold_baseline:
+  error_rate_threshold: 0.05

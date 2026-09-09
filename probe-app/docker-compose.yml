@@ -1,0 +1,102 @@
+# PROBE — Detector, Correlator, Remediator.
+# Hackathon project (Forge the Future 2026, Elastic + AWS Bedrock track).
+# See ../idea/probe.pdf and README.md.
+#
+# Standalone project — deliberately NOT part of ../astronomy-shop-elastic's
+# docker compose. That repo is just "the running app" PROBE observes; these
+# services reach it over its published host ports (see README.md), the same
+# way any external tool would, rather than joining its internal network.
+#
+# Usage:
+#   docker compose up --build --detach
+
+name: probe
+
+services:
+  probe-detector:
+    build:
+      context: .
+      dockerfile: detector/Dockerfile
+    container_name: probe-detector
+    restart: unless-stopped
+    ports:
+      - "${PROBE_DETECTOR_PORT}:${PROBE_DETECTOR_PORT}"
+    environment:
+      - PROBE_DETECTOR_PORT
+      - ELASTIC_ES_URL
+      - ELASTIC_API_KEY_READ
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # no-op on Docker Desktop, needed on Linux
+
+  probe-correlator:
+    build:
+      context: .
+      dockerfile: correlator/Dockerfile
+    container_name: probe-correlator
+    restart: unless-stopped
+    ports:
+      - "${PROBE_CORRELATOR_PORT}:${PROBE_CORRELATOR_PORT}"
+    environment:
+      - PROBE_CORRELATOR_PORT
+      - LLM_PROVIDER
+      - AWS_REGION
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - BEDROCK_MODEL_ID
+      - ANTHROPIC_API_KEY
+      - ANTHROPIC_MODEL
+      - OPENAI_API_KEY
+      - OPENAI_MODEL
+      - GEMINI_API_KEY
+      - GEMINI_MODEL
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  probe-remediator:
+    build:
+      context: .
+      dockerfile: remediator/Dockerfile
+    container_name: probe-remediator
+    restart: unless-stopped
+    ports:
+      - "${PROBE_REMEDIATOR_PORT}:${PROBE_REMEDIATOR_PORT}"
+    environment:
+      - PROBE_REMEDIATOR_PORT
+      - ELASTIC_ES_URL
+      - ELASTIC_API_KEY_READ
+      - KIBANA_URL
+      - JINA_API_KEY
+      - JINA_EMBEDDING_MODEL
+      - JIRA_BASE_URL
+      - JIRA_EMAIL
+      - JIRA_API_TOKEN
+      - JIRA_PROJECT_KEY
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  probe-dashboard:
+    build:
+      context: .
+      dockerfile: dashboard/Dockerfile
+    container_name: probe-dashboard
+    restart: unless-stopped
+    ports:
+      - "${PROBE_DASHBOARD_PORT}:${PROBE_DASHBOARD_PORT}"
+    environment:
+      - PROBE_DASHBOARD_PORT
+      # Container-name DNS — probe-dashboard shares this compose project's
+      # default network with the other three services, so no host.docker.internal
+      # gymnastics needed here (unlike astronomy-shop-elastic, which is a
+      # separate project).
+      - DASHBOARD_DETECTOR_URL=http://probe-detector:${PROBE_DETECTOR_PORT}
+      - DASHBOARD_CORRELATOR_URL=http://probe-correlator:${PROBE_CORRELATOR_PORT}
+      - DASHBOARD_REMEDIATOR_URL=http://probe-remediator:${PROBE_REMEDIATOR_PORT}
+      # flagd-ui lives in the OTHER compose project (astronomy-shop-elastic),
+      # so this one does need the host bridge.
+      - DASHBOARD_FLAGD_URL=http://host.docker.internal:8080/feature
+    depends_on:
+      - probe-detector
+      - probe-correlator
+      - probe-remediator
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

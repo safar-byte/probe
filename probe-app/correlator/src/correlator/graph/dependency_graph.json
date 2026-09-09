@@ -1,0 +1,19 @@
+{
+  "_comment": "Static caller -> [callees] adjacency list for the astronomy-shop demo topology, derived from telemetry-schema/services/*.yaml cross-references and kubernetes/elastic-helm/elastic-architecture.png. Hand-maintained for Stage 2 (Day 1) per the PROBE plan; a stretch goal is deriving/validating this from live trace parent/child spans instead.",
+  "frontend-proxy": ["frontend"],
+  "frontend": ["ad", "cart", "checkout", "currency", "product-catalog", "recommendation", "shipping"],
+  "checkout": ["cart", "currency", "email", "payment", "product-catalog", "shipping", "kafka"],
+  "cart": ["product-catalog", "valkey-cart"],
+  "recommendation": ["product-catalog"],
+  "shipping": ["quote"],
+  "kafka": ["fraud-detection", "accounting"],
+  "ad": [],
+  "currency": [],
+  "email": [],
+  "payment": [],
+  "product-catalog": [],
+  "quote": [],
+  "fraud-detection": [],
+  "accounting": [],
+  "image-provider": []
+}
